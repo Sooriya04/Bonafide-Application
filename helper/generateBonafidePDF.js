@@ -8,6 +8,7 @@ async function generateBonafidePDF(formData) {
 
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: '',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
