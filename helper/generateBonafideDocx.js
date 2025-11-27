@@ -38,15 +38,12 @@ async function generateBonafideDocx(formData) {
       himHer: sanitizeForDocx(formData.himHer || 'him/her')
     };
 
-    console.log('Generated data with himHer:', data.himHer);
-
     const doc = new Docxtemplater(zip, { 
       paragraphLoop: true, 
       linebreaks: true,
       nullGetter: () => ''
     });
     
-    // NEW SYNTAX: Use render() instead of setData()
     doc.render(data);
 
     const buf = doc.getZip().generate({ type: 'nodebuffer' });
