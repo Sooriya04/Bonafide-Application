@@ -38,14 +38,6 @@ const signup = async (req, res) => {
       message: 'Please fill all the fields.',
     });
   }
-
-  if (!email.endsWith('@student.tce.edu')) {
-    return res.render('signup', {
-      error: 'Email Error',
-      message: 'Email must end with @student.tce.edu',
-    });
-  }
-
   try {
     // Already registered?
     const existingUser = await findUserByEmail(email);
@@ -208,15 +200,10 @@ const googleLogin = async (req, res) => {
     const email = decodedToken.email;
     const name = decodedToken.name || email.split('@')[0];
 
-    if (!email.endsWith('@student.tce.edu')) {
-      return res.json({
-        success: false,
-        message: 'Email must end with @student.tce.edu',
-      });
-    }
-
+    // No domain restriction — allow any email
     let userDoc = await findUserByEmail(email);
     if (!userDoc) {
+      // create user without password (OAuth)
       await addUser(name, email, null);
     }
 
@@ -229,6 +216,7 @@ const googleLogin = async (req, res) => {
     return res.json({ success: false, message: 'Google login failed' });
   }
 };
+
 const forgotPassword = async (req, res) => {
   const { email } = req.body || {};
   if (!email) {

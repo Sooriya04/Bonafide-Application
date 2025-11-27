@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const dCtrl = require('../controllers/downloadController');
+const downloadController = require('../controllers/downloadController');
 
-router.get('/print/multiple', dCtrl.downloadBonafide);
+router.get('/download/:id', downloadController.downloadDocx);
 
 module.exports = router;

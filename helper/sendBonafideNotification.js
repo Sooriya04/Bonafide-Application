@@ -32,19 +32,24 @@ async function sendBonafideNotification(formData, fileBuffer, fileName) {
           <p style="font-size:16px;"><strong>Roll No:</strong> ${rollno}</p>
           <p style="font-size:16px;"><strong>Course:</strong> ${course}</p>
           <p style="font-size:16px;"><strong>Branch:</strong> ${branch}</p>
+          <p style="font-size:16px;"><strong>Year:</strong> ${year}</p>
+          <p style="font-size:16px;"><strong>Certificate For:</strong> ${certificateFor}</p>
+          ${scholarshipType ? `<p style="font-size:16px;"><strong>Scholarship Type:</strong> ${scholarshipType}</p>` : ''}
+          <p style="font-size:16px;"><strong>Date:</strong> ${date}</p>
           <hr style="border:none; border-top:1px solid #dddddd; margin:20px 0;" />
-          <p style="font-size:16px;">Please check the attached Bonafide certificate for more details.</p>
+          <p style="font-size:16px;">Please check the attached Bonafide certificate (DOCX) for more details.</p>
         </div>
       `,
       attachments: [
         {
           filename: fileName,
-          content: buffer, // ✅ valid buffer
+          content: buffer,
+          contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // DOCX MIME type
         },
       ],
     });
 
-    console.log('✅ Email with bonafide attached sent successfully');
+    console.log('✅ Email with DOCX bonafide certificate sent successfully');
   } catch (err) {
     console.error('❌ Error sending bonafide notification:', err);
     throw err;

@@ -1,8 +1,10 @@
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin – Bonafide Requests</title>
+
     <link
       href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
       rel="stylesheet"
@@ -11,6 +13,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+
     <style>
       body {
         background-color: #fffdf5;
@@ -108,27 +111,12 @@
         margin: 0 auto 20px;
       }
 
-      .selected-count {
+      .info-note {
+        color: #6b2b2b;
         font-weight: 500;
-        color: maroon;
-        background: #ffe6e6;
-        padding: 8px 15px;
-        border-radius: 20px;
-      }
-
-      .print-btn {
-        background-color: maroon;
-        color: white;
-        border: none;
-        padding: 12px 25px;
-        border-radius: 30px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.25s;
-      }
-
-      .print-btn:hover {
-        background-color: #a83232;
+        background: #fff4f0;
+        padding: 8px 12px;
+        border-radius: 10px;
       }
 
       .table-container {
@@ -213,13 +201,41 @@
         background-color: #f1e3e3;
       }
 
-      input[type='checkbox'] {
-        width: 20px;
-        height: 20px;
+      .downloadBtn {
+        background-color: #6c5ce7;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 8px;
         cursor: pointer;
+        font-weight: 600;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .downloadBtn:hover {
+        transform: translateY(-1px);
+        opacity: 0.95;
+      }
+
+      @media (max-width: 720px) {
+        .search-bar {
+          padding: 0 12px;
+        }
+
+        th, td {
+          font-size: 13px;
+          padding: 10px 8px;
+        }
+
+        header img {
+          width: 180px;
+        }
       }
     </style>
   </head>
+
   <body>
     <header>
       <img src="/images/tce_logo.png" alt="TCE Logo" />
@@ -228,6 +244,7 @@
 
     <h2>Bonafide Requests</h2>
 
+    <!-- Search form -->
     <form method="GET" action="/admin" class="search-bar">
       <input
         type="text"
@@ -245,20 +262,11 @@
       <a href="/admin" class="reset-btn">Reset</a>
     </form>
 
-    <div class="action-bar">
-      <div class="selected-count">
-        <span id="selectedCount">0</span> selected
-      </div>
-      <button id="printSelected" class="print-btn">
-        <i class="fas fa-print"></i> Print Selected
-      </button>
-    </div>
-
     <div class="table-container">
       <table>
         <thead>
           <tr>
-            <th><input type="checkbox" id="selectAll" /></th>
+            <th>Action</th>
             <th>Name</th>
             <th>Roll No</th>
             <th>Branch</th>
@@ -267,26 +275,31 @@
           </tr>
         </thead>
         <tbody>
-          <% forms.forEach(f => { %>
-          <tr>
-            <td>
-              <input
-                type="checkbox"
-                class="recordCheckbox"
-                value="<%= f.id %>"
-              />
-            </td>
-            <td><%= f.name %></td>
-            <td><%= f.rollno %></td>
-            <td><%= f.branch %></td>
-            <td><%= f.year %></td>
-            <td><%= f.certificateFor %></td>
-          </tr>
-          <% }) %>
+          <% if (forms && forms.length > 0) { %>
+            <% forms.forEach(function(f) { %>
+              <tr>
+                <td>
+                  <button class="downloadBtn" data-id="<%= f.id %>" aria-label="Download bonafide for <%= f.name %>">
+                    <i class="fas fa-download"></i> Download
+                  </button>
+                </td>
+                <td><%= f.name %></td>
+                <td><%= f.rollno %></td>
+                <td><%= f.branch %></td>
+                <td><%= f.year %></td>
+                <td><%= f.certificateFor %></td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="6">No requests found.</td>
+            </tr>
+          <% } %>
         </tbody>
       </table>
     </div>
 
+    <!-- Pagination -->
     <ul class="pagination">
       <% for(let i = 1; i <= totalPages; i++) { %>
       <li>
@@ -300,49 +313,53 @@
     </ul>
 
     <script>
-      const selectAll = document.getElementById('selectAll');
-      const checkboxes = document.querySelectorAll('.recordCheckbox');
-      const selectedCount = document.getElementById('selectedCount');
+      // Download single .docx per row when button clicked
+      document.querySelectorAll('.downloadBtn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = btn.dataset.id;
+          if (!id) return alert('No id found for this record.');
 
-      function updateSelectedCount() {
-        const count = document.querySelectorAll(
-          '.recordCheckbox:checked'
-        ).length;
-        selectedCount.textContent = count;
-      }
-
-      selectAll.addEventListener('change', (e) => {
-        checkboxes.forEach((cb) => (cb.checked = e.target.checked));
-        updateSelectedCount();
-      });
-
-      checkboxes.forEach((cb) =>
-        cb.addEventListener('change', updateSelectedCount)
-      );
-
-      document
-        .getElementById('printSelected')
-        .addEventListener('click', async () => {
-          const ids = Array.from(
-            document.querySelectorAll('.recordCheckbox:checked')
-          ).map((cb) => cb.value);
-          if (ids.length === 0)
-            return alert('⚠️ Please select at least one student');
+          // give some quick feedback to user
+          const originalText = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
 
           try {
-            const res = await fetch(`/print/multiple?ids=${ids.join(',')}`);
-            if (!res.ok) throw new Error();
-            const pdfBlob = await res.blob();
-            const pdfUrl = URL.createObjectURL(pdfBlob);
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(
-              `<html><head><title>Print Bonafide</title></head><body style="margin:0"><iframe src="${pdfUrl}" style="width:100%;height:100vh;" frameborder="0"></iframe></body></html>`
-            );
-            printWindow.document.close();
+            const res = await fetch(`/download/${encodeURIComponent(id)}`);
+            if (!res.ok) {
+              const text = await res.text().catch(()=>null);
+              throw new Error(text || 'Failed to download file.');
+            }
+
+            const blob = await res.blob();
+
+            // try to read filename from Content-Disposition
+            const cd = res.headers.get('Content-Disposition') || '';
+            let filename = 'bonafide.docx';
+            const match = cd.match(/filename\*=UTF-8['"]?([^;]+)|filename="([^"]+)"|filename=([^;]+)/i);
+            if (match) {
+              // filename*=UTF-8''encoded or filename="name"
+              filename = decodeURIComponent(match[1] || match[2] || match[3]) || filename;
+            }
+
+            // create invisible anchor to download the blob
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
           } catch (err) {
-            alert('❌ Error generating PDF');
+            console.error(err);
+            alert('❌ Error downloading file. See console for details.');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
           }
         });
+      });
     </script>
   </body>
 </html>

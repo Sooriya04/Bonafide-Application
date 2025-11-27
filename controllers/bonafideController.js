@@ -2,7 +2,24 @@ const { db } = require('../config/firebase');
 const {
   sendBonafideNotification,
 } = require('../helper/sendBonafideNotification');
-const generateBonafidePDF = require('../helper/generateBonafidePDF');
+const generateBonafideDocx = require('../helper/generateBonafideDocx');
+
+function getHimHerFromTitle(title) {
+  if (!title) return 'him/her';
+  
+  const lowerTitle = title.toLowerCase().trim();
+  
+  if (lowerTitle.includes('mr.') || lowerTitle === 'mr' || lowerTitle.includes('shri') || lowerTitle.includes('sri')) {
+    return 'him';
+  }
+  
+  if (lowerTitle.includes('ms.') || lowerTitle.includes('mrs.') || lowerTitle.includes('miss') || 
+      lowerTitle === 'ms' || lowerTitle === 'mrs' || lowerTitle.includes('kumari') || lowerTitle.includes('smt')) {
+    return 'her';
+  }
+  
+  return 'him/her';
+}
 
 exports.getForm = (req, res) => {
   const formData = req.session.bonafideData || {};
@@ -38,6 +55,7 @@ exports.postForm = (req, res) => {
     res.status(500).send('Error processing form');
   }
 };
+
 exports.confirmForm = async (req, res) => {
   const finalData = req.session.bonafideData;
   if (!finalData) return res.redirect('/bonafide');
@@ -50,19 +68,27 @@ exports.confirmForm = async (req, res) => {
 
     finalData.name = finalData.name.toUpperCase();
     finalData.parentName = finalData.parentName.toUpperCase();
+    
+    // Determine him/her based on title
+    finalData.himHer = getHimHerFromTitle(finalData.title);
 
+    // Save to Firebase
     await db.collection('bonafideForms').add({
       ...finalData,
+      himHer: finalData.himHer, // Save it to database too
       createdAt: new Date(),
     });
 
-    const buffer = await generateBonafidePDF(finalData);
+    // Generate DOCX buffer
+    const buffer = await generateBonafideDocx(finalData);
 
+    // Create filename with .docx extension
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
-    const fileName = `${day}-${month}-${year}-bonafide-certificate-${finalData.rollno}.pdf`;
+    const fileName = `${day}-${month}-${year}-bonafide-certificate-${finalData.rollno}.docx`;
 
+    // Send email with DOCX attachment
     await sendBonafideNotification(finalData, buffer, fileName);
 
     req.session.bonafideData = null;
